@@ -31,37 +31,36 @@
    (update-in-seq '(a b c) [1] (fn [& args] (identity 1))) => '(a 1 c)
    )
 
-(def extract-let @#'util.clojure.core/extract-let)
-(facts ""
-   (extract-let [] [] []) => [[] [] []]
-   (extract-let [] [] '[a b]) => [[] [] '[a b]]
-   (extract-let [] [] '[:let [a b]]) => (just [`(let ~'[a b]) [] empty?])
-   (extract-let [] [] '[:let [a b] c d]) => [`(let ~'[a b]) [] '(c d)]
-   (extract-let `(let ~'[c d]) [] '[:let [a b]]) => (just [`(let ~'[c d] (let ~'[a b])) [2] empty?])
-   (extract-let `(let ~'[c d] (loop ~'[e f])) [2] '[:let [a b]]) => (just [`(let ~'[c d] (loop ~'[e f] (let ~'[a b]))) [2 2] empty?])
+(facts "test extract-let"
+   (extract-let :let '[a 1 b 2] '[c 3 d 4]) => '[(clojure.core/let [a 1 b 2]) ([c 3 d 4])]
+   (extract-let :let '[a 1 b 2]) => '[(clojure.core/let [a 1 b 2]) nil]
+   )
+(facts "test extract-loop"
+   (extract-loop '[a 1 b 2]) => '[(clojure.core/loop [a 1 b 2]) []]
+   (extract-loop '[a 1 b 2 :let [c 3]]) => '[(clojure.core/loop [a 1 b 2]) (:let [c 3])]
+   )
+(facts "test extract"
+   (extract [:let '[a 1 b 2]]) => '[(clojure.core/let [a 1 b 2]) nil]
+   (extract [:let '[a 1 b 2] '[c 3 d 4]]) => '[(clojure.core/let [a 1 b 2]) ([c 3 d 4])]
+   (extract '[a 1 b 2 :let [c 3]]) => '[(clojure.core/loop [a 1 b 2]) (:let [c 3])]
+   )
+(facts "test create-bindings"
+   (create-bindings nil) => []
+   (create-bindings '[:let [a 1 b 2]]) => '[(clojure.core/let [a 1 b 2])]
+   (create-bindings '[:let [a 1 b 2] c 3 d 4]) => '[(clojure.core/let [a 1 b 2]) (clojure.core/loop [c 3 d 4])]
+   (create-bindings '[:let [a 1 b 2] c 3 d 4 :let [e 5 d 6]]) => '[(clojure.core/let [a 1 b 2]) (clojure.core/loop [c 3 d 4]) (clojure.core/let [e 5 d 6])]
+   (create-bindings '[c 3 d 4 :let [e 5 d 6]]) => '[(clojure.core/loop [c 3 d 4]) (clojure.core/let [e 5 d 6])]
    )
 
-(def extract-loop @#'util.clojure.core/extract-loop)
-(facts ""
-   ;read TODO(extract-loop [] [] [:let]) => [[] [] [:let]]
-   ;read TODO(extract-loop [] [] []) => [[] [] []]
-   (extract-loop [] [] '[a b]) => [`(loop ~'[a b]) [] '()]
-   (extract-loop `(let ~'[a b]) [] '[c d]) => [`(let ~'[a b] (loop ~'[c d])) [2] '()]
-   (extract-loop `(let ~'[a b]) [] '[c d :let]) => [`(let ~'[a b] (loop ~'[c d])) [2] [:let]]
-   )
-
-(def create-bindings @#'util.clojure.core/create-bindings)
-(facts ""
-   (create-bindings nil) => [nil []]
-   (create-bindings []) => [nil []]
-   (create-bindings '(:let [a b])) => [`(let ~'[a b]) []]
-   (create-bindings '(:let [a b] :let [c d])) => [`(let ~'[a b] (let ~'[c d])) [2]]
-   (create-bindings '(:let [a b] c d)) => [`(let ~'[a b] (loop ~'[c d])) [2]]
-   (create-bindings '(:let [a b] c d e f)) => [`(let ~'[a b] (loop ~'[c d e f])) [2]]
-   (create-bindings '(:let [a 0] c 1 e 2 :let [g 3 i 4])) => [`(let ~'[a 0] (loop ~'[c 1 e 2] (let ~'[g 3 i 4]))) [2 2]]
-   )
-
-(facts ""
+(facts "test loop-with-let expansion"
    (loop-with-let [:let [a 1]] (inc a)) =expands-to=> (clojure.core/let [a 1] (inc a))
-   (loop-with-let [:let [a 1] b a]) =expands-to=> (clojure.core/let [a 1] (loop [b a]))
+   (loop-with-let [:let [a 1] b a]) =expands-to=> (clojure.core/let [a 1] (clojure.core/loop [b a]))
+   (loop-with-let [:let [a 1] b a :let [c b]]) =expands-to=> (clojure.core/let [a 1] (clojure.core/loop [b a] (clojure.core/let [c b])))
+   (loop-with-let [b a :let [c b]]) =expands-to=> (clojure.core/loop [b a] (clojure.core/let [c b]))
+   )
+(facts "test loop-with-let behavior"
+   (loop-with-let [:let [a 1]] (inc a)) => 2
+   (loop-with-let [:let [a 1] b a cnt 2] (if (= b 3) cnt (recur (inc b) (* cnt cnt)))) => 16 
+   (loop-with-let [:let [a 1] b a :let [cnt 2]] (if (= b 3) (* cnt b) (recur (inc b)))) => 6 
+   (loop-with-let [b 1 :let [cnt 2]] (if (= b 3) (* cnt b) (recur (inc b)))) => 6 
    )
