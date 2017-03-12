@@ -1,6 +1,8 @@
 filetag.bat
 filenametags
 *.swp
+*.swo
+/target
 /pom.xml
 *jar
 /lib

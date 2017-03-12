@@ -1,5 +1,6 @@
 (defproject clj-util "1.0.0-SNAPSHOT"
   :description "FIXME: write description"
-  :dependencies [[org.clojure/clojure "1.3.0"]]
-  :dev-dependencies [[midje "1.3.1"]]
+  :dependencies [[org.clojure/clojure "1.8.0"]]
+  :profiles {:dev {:dependencies [[midje "1.8.3"]]
+                   :plugins [[lein-midje "3.2.1"]]}}
   )
