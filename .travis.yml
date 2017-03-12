@@ -1,5 +1,4 @@
 language: clojure
-script: "lein midje"
+script: "lein cloverage --codecov --runner :midje"
 after_success:
-- lein cloverage --codecov --runner :midje
 - bash <(curl -s https://codecov.io/bash) -f target/coverage/codecov.json
