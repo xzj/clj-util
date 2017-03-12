@@ -19,7 +19,7 @@
    )
 
 (facts ""
-   (get-in-seq nil nil) => 1
+   (get-in-seq nil nil) => nil
    (get-in-seq [] nil) => nil
    (get-in-seq [] []) => nil
    (get-in-seq nil [3]) => nil
